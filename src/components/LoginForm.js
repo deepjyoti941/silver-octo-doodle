@@ -1,13 +1,60 @@
 import React, { Component } from 'react';
-import { Button, Card, CardSection, Input } from './common';
+import { Text } from 'react-native';
+import firebase from 'firebase';
+import { Button, Card, CardSection, Input, Spinner } from './common';
 
 export default class LoginForm extends Component {
 
   /*** NOTE: when we do this.setState component immediately rerender ***/
   state = {
     email: '',
-    password: ''
+    password: '',
+    error: '',
+    loading: false
    };
+
+  onButtonPress() {
+    const { email, password } = this.state;
+
+    this.setState({ error: '', loading: true });
+
+    firebase.auth().signInWithEmailAndPassword(email, password)
+      .then(this.onLoginSuccess.bind(this))
+      .catch(() => {
+        firebase.auth().createUserWithEmailAndPassword(email, password)
+          .then(this.onLoginSuccess.bind(this))
+          .catch(this.onLoginFailed.bind(this));
+      });
+  }
+
+  onLoginFailed() {
+    this.setState({
+      loading: false,
+      error: 'Authentication failed'
+    })
+  }
+
+  onLoginSuccess() {
+    this.setState({
+      email: '',
+      password: '',
+      loading: false,
+      error: ''
+    })
+  }
+
+  renderButton() {
+    if (this.state.loading) {
+      return <Spinner spinnerSize="small"/>
+    }
+
+    return (
+      <Button onPress={this.onButtonPress.bind(this)}>
+        Login
+      </Button>
+    )
+
+  }
 
   render() {
     return (
@@ -17,7 +64,7 @@ export default class LoginForm extends Component {
             placeholder="user@gmail.com"
             label="Email"
             value={this.state.email}
-            onChangeText={mail => this.setState({ email })}
+            onChangeText={email => this.setState({ email })}
             />
         </CardSection>
 
@@ -31,10 +78,23 @@ export default class LoginForm extends Component {
           />
         </CardSection>
 
+        <Text style={styles.errorTextStyle}>
+          {this.state.error}
+        </Text>
+
         <CardSection>
-          <Button>Login</Button>
+          {this.renderButton()}
         </CardSection>
       </Card>
     )
+  }
+}
+
+
+const styles = {
+  errorTextStyle: {
+    fontSize: 20,
+    alignSelf: 'center',
+    color: 'red'
   }
 }
